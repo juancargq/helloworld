@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+    stages {
+        stage('Echo') {
+            steps {
+                bat '''
+                    echo 'Hello World'
+                    hostname
+                    whoami
+                    dir
+                    echo %WORKSPACE%
+                '''
+                stash includes: '**/*', excludes: 'Jenkinsfile*', name: 'repo-files'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Aqui no se hace nada'
+            }
+        }
+        stage('Parallel-Tests') {
+            parallel {
+                stage('Unit Tests') {
+                    agent {
+                        label 'agente1'
+                    }
+                    steps {
+                        unstash 'repo-files'
+                        bat '''
+                            hostname
+                            whoami
+                            SET PYTHONPATH=.
+                            pytest --junitxml=junit-report.xml test/unit
+                        '''
+                        stash includes: 'junit-report.xml', name: 'junit-report'
+                    }
+                }
+                stage('Rest Tests') {
+                    agent {
+                        label 'agente2'
+                    }
+                    steps {
+                        unstash 'repo-files'
+                        bat '''
+                            hostname
+                            whoami
+                            SET FLASK_APP=app/api.py
+                            start flask run
+                            start java -jar C:/Users/jcgom/Downloads/wiremock-standalone-3.10.0.jar --port 9090 --root-dir test/wiremock
+                            pytest test/rest
+                        '''
+                    }
+                }
+            }
+        }
+        stage('JUnit') {
+            steps {
+                bat '''
+                    hostname
+                    whoami
+                '''
+                unstash 'junit-report'
+                junit 'junit-report.xml'
+            }
+        }
+    }
+}
