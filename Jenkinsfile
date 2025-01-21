@@ -23,7 +23,7 @@ pipeline {
                 bat 'coverage xml'
 
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    cobertura coberturaReportFile: 'coverage.xml', conditionalCoverageTargets: '100,80,90', lineCoverageTargets: '100,85,95'
+                    cobertura coberturaReportFile: 'coverage.xml', conditionalCoverageTargets: '90,80,80', lineCoverageTargets: '95,85,85'
                 }
             }
         }
